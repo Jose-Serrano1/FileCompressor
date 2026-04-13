@@ -1,15 +1,15 @@
 CC=gcc
 CFLAGS=-c -Wall
-SOURCE=proyecto5.c
+SOURCE=./src/compresser.c
 OBJ=$(SOURCE:.c=.o)
-EXE=proyecto5
-
+EXE=compresser
+HEADERS=./src/compress.h ./src/tree.h
 all: $(SOURCE) $(EXE)
 
 $(EXE): $(OBJ)
 	$(CC) $(OBJ) -o $@ -lm 
 
-%.o: %.c
+%.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@ -lm
 
 clean:

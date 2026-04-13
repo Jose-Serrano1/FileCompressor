@@ -8,8 +8,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "huffmanTree.h"
-
 typedef struct Node {
     int key;
     long value;
@@ -32,7 +30,7 @@ void loadFrecuenciesToFile(char *filename, struct pair characters[256]);
 void initializeCharacters(struct pair characters[256]);
 void printFrequencyTable(struct pair characters[256]);
 int calcTreeSize(Node leafs[]);
-void createMap(Node *root, int number[], int index);
+void createMap(Node *root, int number[], int index, int matrix[][]);
 void writeHuffmanTreeToFile(Node *leafs, int leafsIndex, const char *filename);
 
 
@@ -77,7 +75,7 @@ int main(int argc, char *argv[]) {
         }
         
         //Freq is set to -1 to be ignored
-        leafs[minIndex1].value = -1; 
+        leafs[minIndex1].value = -1;
 
         //Obtain the index of the other minimum value
         minIndex2 = minIndex(leafs);
@@ -100,57 +98,28 @@ int main(int argc, char *argv[]) {
         leafs[minIndex2].parent = &leafs[leafsIndex];
     }
 
-    writeHuffmanTreeToFile(leafs, leafsIndex, "huffmanTree.h");
+    //writeHuffmanTreeToFile(leafs, leafsIndex, "huffmanTree.h");
 
-    //worst case is a 256 code
-    int array[256];
+    
+    int array[256];       //worst case is a 256 code
+    int matrix[256][256]; //To read the compressed binary code for each byte
+    createMap(&leafs[leafsIndex],array,-1, matrix);
     //Traverse the map and create .h files
-    FILE *file = fopen("matrixHuffman.h","w");
-    if (file == NULL) {
-        printf("There was an error writing matrixHuffman.h");
-    } else {
-        fprintf(file,"int matrix[256][256] = {0};\nvoid initMatrix(){");
-        fclose(file);
-        createMap(&leafs[leafsIndex],array,-1);
-        file = fopen("matrixHuffman.h","a");
-        
-        fprintf(file,"\n}");
-        fclose(file);
-    }
+    
     return 0;
 }
 
-void createMap(Node *root, int binNumber[], int index) {
+void createMap(Node *root, int binNumber[], int index, int matrix[256][256]) {
     //Base case: node does not have children (is a leaf)
     if (root->leftChild == NULL) {
-
         int symbol = root->key;
-        bool opened = true;
-        FILE *file = fopen("matrixHuffman.h","a");
-        if (file == NULL) {
-            printf("There was an error writing matrixHuffman.h");
-            opened = false;
-        }
 
-        fprintf(file,"\n");
-
-        //Show map in console
-        printf("symbol:%i\nfrequency:",symbol);
         int bit;
         for (int i = 0; i <= index; i++) {
             bit = binNumber[i];
-            printf("%i",bit);
-            if (opened) {
-                fprintf(file,"\nmatrix[%i][%i]=%i;",symbol,i,bit);
-            }
+            matrix[symbol][i] = bit;
         }
-
-        if (opened) {
-            fprintf(file,"\nmatrix[%i][%i]=2;",symbol,index+1);
-        }
-
-        printf("\n\n");
-        fclose(file);
+        matrix[symbol][index+1] = 2;
         return;
     }
     index++;

@@ -128,17 +128,11 @@ int binary(unsigned char number) {
     printf("\n");
 }
 
-long compressFile(char *filename, int matrix[256][256], long oldFileBytes) {
+long compressFile(char **directory, int matrix[256][256], long oldFileBytes) {
     // SAVING BITS
     unsigned char byteReading = 0;
     unsigned char byteWriting = 0;
-    
-    bool *bits = (bool *)malloc(197772160 *sizeof(bool));
-    int bitsCountTemp = 0;
-    int newFileBytes = 0;
-    int index = 0;
     double totalBits;
-
 
     //String with extension .huff
     char *newFile = (char *)malloc(500 * sizeof(char));
@@ -146,7 +140,6 @@ long compressFile(char *filename, int matrix[256][256], long oldFileBytes) {
 
     //Deleting old compressed file if exists
     remove(newFile);
-
     
     FILE *readingFile = fopen(filename, "rb");
 
@@ -156,10 +149,15 @@ long compressFile(char *filename, int matrix[256][256], long oldFileBytes) {
         printf("There was an error reading: %s\n", filename);
         return 0;
     }
-    unsigned char header[3];
-    header[2] = oldFileBytes & 0xFF;
-    header[1] = (oldFileBytes >> 8) & 0xFF;
-    header[0] = (oldFileBytes >> 16) & 0xFF;
+    unsigned char header[8];
+    header[7] = oldFileBytes & 0xFF;
+    header[6] = (oldFileBytes >> 8) & 0xFF;
+    header[5] = (oldFileBytes >> 16) & 0xFF;
+    header[4] = (oldFileBytes >> 24) & 0xFF;
+    header[3] = (oldFileBytes >> 32) & 0xFF;
+    header[2] = (oldFileBytes >> 40) & 0xFF;
+    header[1] = (oldFileBytes >> 48) & 0xFF;
+    header[0] = (oldFileBytes >> 56) & 0xFF;
     //3 bytes added to newFileSize
     totalBits += 24;
     fwrite(header, sizeof(unsigned char), 3, writingFile);
@@ -195,6 +193,10 @@ long compressFile(char *filename, int matrix[256][256], long oldFileBytes) {
     free(newFile);
     return ceil(totalBits/8);
 /*
+    bool *bits = (bool *)malloc(197772160 *sizeof(bool));
+    int bitsCountTemp = 0;
+    int newFileBytes = 0;
+    int index = 0;
     while (newFileBytes < oldFileBytes) {
         
         for (int i = 0; matrix[byteReading][i] != 2; i++) {
