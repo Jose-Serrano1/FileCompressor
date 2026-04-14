@@ -62,14 +62,6 @@ int main(int argc, char *argv[]) {
 
     compressDirectory(argv[1], matrix, frequencies);
     
-    //Esto es al comprimir
-    //saveFrequenciesToFile(freqFilename, frequencies);
-    
-    //Esto es del descompresor
-    /*
-    if (validateFile(freqFilename)) {
-        loadfrequenciesToMemory(freqFilename, frequencies);
-    }*/
     return 0;
 }
 

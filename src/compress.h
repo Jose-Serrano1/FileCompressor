@@ -29,7 +29,7 @@ void huffExtension(char *original, char *copy) {
     copy[i+5] = '\0';
 }
 
-void compressFile(char fullPath[600], FILE *writingFile, int matrix[256][256]) {
+void compressFile(char fullPath[600], FILE *writingFile, int matrix[256][256], char *filename) {
     unsigned char byteReading, byteWriting = 0;
     int i = 1;
     struct stat st;
@@ -46,6 +46,7 @@ void compressFile(char fullPath[600], FILE *writingFile, int matrix[256][256]) {
     }
 
     fwrite(&oldFileSize, sizeof(long), 1, writingFile);
+    fwrite(filename, sizeof(char), strlen(filename) + 1, writingFile);
 
     while (fread(&byteReading, sizeof(unsigned char), 1, readingFile) == 1) {
         //printf("chaa %02x\n",byteReading);
@@ -90,11 +91,11 @@ void compressDirectory(char *directory, int matrix[256][256], long frequencies[2
         printf("There was an error during compressiion\n"); return;
     }
     fwrite(frequencies, sizeof(long), 256, writingFile); //Necessary to decompress
-
     
     while ((entry=readdir(folder))) {
+        printf("Compressing %s\n", entry->d_name);
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, entry->d_name);
-        compressFile(fullPath, writingFile, matrix);
+        compressFile(fullPath, writingFile, matrix, entry->d_name);
     }
 
     closedir(folder);

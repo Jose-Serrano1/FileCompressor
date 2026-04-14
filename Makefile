@@ -1,16 +1,23 @@
 CC=gcc
 CFLAGS=-c -Wall
-SOURCE=./src/compresser.c
+SOURCE=./src/compressor.c
+SOURCE2=./src/decompresser.c
 OBJ=$(SOURCE:.c=.o)
-EXE=compresser
+OBJ2=$(SOURCE2:.c=.o)
+EXE=compressor
+EXE2=decompressor
 HEADERS=./src/compress.h ./src/tree.h
-all: $(SOURCE) $(EXE)
+
+all: $(EXE) $(EXE2)
 
 $(EXE): $(OBJ)
-	$(CC) $(OBJ) -o $@ -lm 
+	$(CC) $(OBJ) -o $@ -lm
+
+$(EXE2): $(OBJ2)
+	$(CC) $(OBJ2) -o $@ -lm
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@ -lm
 
 clean:
-	rm -rf $(OBJ) $(EXE)
+	rm -rf $(OBJ) $(OBJ2) $(EXE) $(EXE2)

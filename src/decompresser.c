@@ -7,8 +7,8 @@
 #include <locale.h>
 #include <string.h>
 #include <ctype.h>
-#include "matrixHuffman.h"
-#include "huffmanTree.h"
+#include <dirent.h>
+#include "tree.h"
 
 struct pair
 {
@@ -25,38 +25,40 @@ void calculateFrecuencies(char *filename, struct pair characters[256]);
 void loadFrecuenciesToFile(char *filename, struct pair characters[256]);
 void initializeCharacters(struct pair characters[256]);
 long compressFile(char *filename, int matrix[256][256], long oldFileBytes);
-long countChars(char *filename);
-void huffExtension(char *original, char *copy);
-unsigned char findChar(FILE *file, HuffmanNode *current, int *counter, unsigned char *byte);
+void removeHuffExtension(char *original, char *copy, int size);
+bool newDirectory(char *filename, char directoryName[500]);
+void decompress(char *compressedFile, char directoryName[500]);
+
+unsigned char findChar(FILE *file, Node *current, int *counter, unsigned char *byte);
+
+Node huffmanTree[512];
+int rootIndex;
 
 int main(int argc, char *argv[]) {
-
+    
     // Validation of arguments number
     if (argc < 2) {
-        printf("Usage: %s [input_files...]\n", argv[0]);
+        printf("Usage: %s <file.huff>\n", argv[0]);
+        return 1;
+    }
+    
+    /*long frequencies[256];
+    FILE *file = fopen(argv[1],"rb");
+    if (file == NULL) {
+        printf("There was an error reading: %s\n", argv[1]);
+        return;
+    }
+    fread(frequencies, sizeof(long), 256, file);*/
+
+    char directoryName[500];
+    removeHuffExtension(argv[1], directoryName, filenameSize(argv[1]));
+    
+    //Validate file and create directory 
+    if (!newDirectory(argv[1], directoryName)) {
         return 1;
     }
 
-    // Validations of files (if exist)
-    for (int i = 1; i < argc; i++) {
-        if (!fileExists(argv[i])) {
-            printf("'%s' File not found or invalid.\n", argv[i]);
-            return 1;
-        }
-    }
-
-    //Decompressing
-    for (int i = 1; i < argc; i++) {
-        char * fileName = (char *)malloc(500 * sizeof(char));
-        fileName = argv[i];
-        int fileSize = filenameSize(fileName);
-        if (hasHuffExtension(fileName, fileSize)) {
-            printf("--------------------------------------------------\n");
-            decompress(fileName);
-        }
-    }
-
-    
+    decompress(argv[1], directoryName);
 
 
 
@@ -94,23 +96,47 @@ int main(int argc, char *argv[]) {
     */return 0;
 }
 
-unsigned char findChar(FILE *file, HuffmanNode *current, int *counter, unsigned char *byte) {
+bool newDirectory(char *filename, char directoryName[500]) {
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        printf("Could not open %s\n", filename);
+        return false;
+    }
+    fclose(file);
+    
+    char command[500];
+    DIR *folder;
+    folder = opendir(directoryName);
+
+    if (folder == NULL) {
+        sprintf(command, "mkdir %s",directoryName);
+    } else {
+        sprintf(command, "mkdir prev%s",directoryName);
+
+    }
+    system(command);
+
+    closedir(folder);
+    return true;
+}
+
+unsigned char findChar(FILE *file, Node *current, int *counter, unsigned char *byte) {
     int validate;
     //Every 8 iterations a new byte is read
     while (current->key == -1) {
         if (*counter % 8 == 0) {
             validate = fread(byte, sizeof(unsigned char), 1, file);
             if (!validate) {
-                printf("An error occured reading %c",file);
+                printf("An error occured reading");
                 fclose(file);
-                return;
+                exit(1);
             }
         }
         //Extract the most significant bit
-        if ((*byte & 152) >> 7) {
-            current = &huffmanTree[current->left];
+        if ((*byte & 128) >> 7) {
+            current = current->leftChild;
         } else {
-            current = &huffmanTree[current->right];
+            current = current->rightChild;
         }
         *byte = *byte << 1; 
         *counter += 1;
@@ -118,81 +144,71 @@ unsigned char findChar(FILE *file, HuffmanNode *current, int *counter, unsigned 
     return (unsigned char)current->key;
 }
 
-void printStats(long oldSize, long newSize) {
+/*void printStats(long oldSize, long newSize) {
     printf("      |%-5li          | %-5i          |%-1f                   |\n",oldSize, newSize, 100-(float)newSize*100/oldSize);
-}
+}*/
 
-long countChars(char *filename) {
-    FILE *file = fopen(filename, "rb");
-    if (file == NULL) {
-        printf("There was an error counting: %s\n", filename);
-        return;
-    }
+
+
+
+void decompress(char *compressedFile, char directoryName[500]) {
+    long frequencies[256];    
+    long decompressedFileSize;
+    char fileName[500];
+    char fullPath[1000];
     unsigned char byte;
-    long count = 0;
-    while (fread(&byte, sizeof(unsigned char), 1, file)) {
-        count++;
-    }
-
-    fclose(file);
-    return count;
-}
-
-
-
-void decompress(char *compressedFile) {
-
-    //uncompressedFile contains the original's file name
-    char uncompressedFile[500];
-    char prevFile[504];
-    
-    removeHuffExtension(compressedFile, uncompressedFile, filenameSize(compressedFile));
-    sprintf(prevFile, "%s.prev", uncompressedFile);
-
-    //If the original file is in the directory, it is renamed
-    if (fileExists(uncompressedFile)) {
-        if (fileExists(prevFile)) {
-            remove(prevFile);
-            printf("Previous %s.prev file removed\n", uncompressedFile);
-        }
-        char command[1000];
-        sprintf(command, "mv %s %s.prev", uncompressedFile, uncompressedFile);
-        system(command);
-
-    }
-
-    // Get uncompressed file size
-    FILE *fileReading = fopen(compressedFile,"rb");
-    unsigned char byte;
-    int bytesTotal = 0;
-    for (int i = 0; i < 3; i++) {
-        fread(&byte,sizeof(unsigned char),1,fileReading);
-        bytesTotal = bytesTotal | (byte<<(8*(2-i)));
-    }
-
-    int bytesWritten = 0;
-    HuffmanNode *current = &huffmanTree[510];
-    HuffmanNode *root = &huffmanTree[510];
-    
     int counter = 0;
     unsigned char printingByte;
+    
+    FILE *fileReading = fopen(compressedFile,"rb");
+    
+    //Load frequencies
+    fread(frequencies, sizeof(long), 256, fileReading);
 
-    FILE *fileWriting = fopen(uncompressedFile, "wb");
+    //Create tree
+    initializeNodes(huffmanTree, frequencies);
+    rootIndex = createTree(huffmanTree); 
+    Node *root = &huffmanTree[rootIndex];
+    Node *current = &huffmanTree[rootIndex];
+    
+    //Write each file
+    while (fread(&decompressedFileSize, sizeof(long), 1, fileReading)==1) {
+        //Recover filename
+        for (int i = 0; fread(&byte, sizeof(unsigned char), 1, fileReading) == 1; i++) {
+            fileName[i] = byte;
+            if (byte == '\0') break;
+        }
+        printf("fileSize: %li\nfileName: %s\n", decompressedFileSize, fileName);
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", directoryName, fileName);
+        printf("%s",fullPath);
+        FILE *fileWriting = fopen(fullPath, "wb");
+        
 
-    while (bytesTotal > 0) {
-        //Traverse the tree and returns char
-        printingByte = findChar(fileReading, current, &counter, &byte);
-        fwrite(&printingByte, sizeof(unsigned char), 1, fileWriting);
-        current = root;
-        bytesTotal--;
+        while (decompressedFileSize > 0) {
+            //Traverse the tree and returns char
+            printingByte = findChar(fileReading, current, &counter, &byte);
+            fwrite(&printingByte, sizeof(unsigned char), 1, fileWriting);
+            current = root;
+            decompressedFileSize--;
+        }
+        counter = 0;
+        byte = 0;
+        fclose(fileWriting);
+
     }
-    fclose(fileWriting);
     fclose(fileReading);
 
-    char diffCommand[1000];
+    
+    
+
+    
+
+    
+
+    /*char diffCommand[1000];
     sprintf(diffCommand, "diff %s %s.prev", uncompressedFile, uncompressedFile);
     printf("Comparing files %s and %s.prev:\n", uncompressedFile, uncompressedFile);
-    system(diffCommand);
+    system(diffCommand);*/
 }
 
 void removeHuffExtension(char *original, char *copy, int size) {
