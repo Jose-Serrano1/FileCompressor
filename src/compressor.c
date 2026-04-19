@@ -44,7 +44,6 @@ int main(int argc, char *argv[]) {
 
     while ((entry=readdir(folder))) {
         if (!isTextFile(entry->d_name)) continue;
-        printf("%s\n",entry->d_name);
         snprintf(fullPath, sizeof(fullPath), "%s/%s", argv[1], entry->d_name);
         calculateFrequencies(fullPath, frequencies);
     }
@@ -57,7 +56,7 @@ int main(int argc, char *argv[]) {
     
     /////MAP BYTES TO BINARY CODE/////
     int array[256];
-    int matrix[256][256]; //To read the compressed binary code for each byte
+    char matrix[256][256]; //To read the compressed binary code for each byte
     createMap(&leafs[rootIndex], array, -1, matrix);
 
     compressDirectory(argv[1], matrix, frequencies);

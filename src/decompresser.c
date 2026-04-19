@@ -111,7 +111,10 @@ bool newDirectory(char *filename, char directoryName[500]) {
     if (folder == NULL) {
         sprintf(command, "mkdir %s",directoryName);
     } else {
-        sprintf(command, "mkdir prev%s",directoryName);
+        char temp[500];
+        sprintf(temp, "prev%s",directoryName);
+        sprintf(directoryName, "%s",temp);
+        sprintf(command, "mkdir %s",directoryName);
 
     }
     system(command);
@@ -178,11 +181,9 @@ void decompress(char *compressedFile, char directoryName[500]) {
             fileName[i] = byte;
             if (byte == '\0') break;
         }
-        printf("fileSize: %li\nfileName: %s\n", decompressedFileSize, fileName);
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directoryName, fileName);
-        printf("%s",fullPath);
+        printf("Writing %s\n",fullPath);
         FILE *fileWriting = fopen(fullPath, "wb");
-        
 
         while (decompressedFileSize > 0) {
             //Traverse the tree and returns char

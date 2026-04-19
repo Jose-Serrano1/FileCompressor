@@ -6,6 +6,8 @@
 #include <math.h>
 #include <libgen.h>
 
+#define BUFFER_SIZE 10000
+
 bool isTextFile(char *filename) {
     int i;
     for(i = 0; filename[i]!='\0';i++) {}
@@ -29,13 +31,15 @@ void huffExtension(char *original, char *copy) {
     copy[i+5] = '\0';
 }
 
-void compressFile(char fullPath[600], FILE *writingFile, int matrix[256][256], char *filename) {
+void compressFile(char fullPath[600], FILE *writingFile, char matrix[256][256], char *filename) {
     unsigned char byteReading, byteWriting = 0;
-    int i = 1;
+    unsigned char buffer[BUFFER_SIZE];
+    int i = 0;
     struct stat st;
     long oldFileSize; //Size in bytes
 
     if (!isTextFile(fullPath)) return;
+    printf("Compressing %s\n", filename);
 
     stat(fullPath, &st);
     oldFileSize = st.st_size;
@@ -52,25 +56,39 @@ void compressFile(char fullPath[600], FILE *writingFile, int matrix[256][256], c
         //printf("chaa %02x\n",byteReading);
         for (int j = 0; matrix[byteReading][j] != 2; j++) {
             byteWriting = byteWriting << 1;
+            i++;
+
             if (matrix[byteReading][j]) {
                 byteWriting = byteWriting | 1;
             }
-            if (i%8 == 0) {
-                fwrite(&byteWriting, sizeof(unsigned char), 1, writingFile);
+
+            if (i%8 != 0) continue;
+
+            buffer[(i/8 - 1) % BUFFER_SIZE] = byteWriting;
+            if (i/8 % BUFFER_SIZE == 0) {
+                fwrite(buffer, sizeof(unsigned char), BUFFER_SIZE, writingFile);
             }
-            i++;
+            //fwrite(&byteWriting, sizeof(unsigned char), 1, writingFile);
         }
         byteReading = 0;
     }
-    i--;
+
+    int bytesInBuffer = (i / 8) % BUFFER_SIZE;
     if (i % 8 != 0) {
-        byteWriting = byteWriting << (8-(i%8));
-        fwrite(&byteWriting, sizeof(unsigned char), 1, writingFile);
+        /*if (bytesInBuffer == BUFFER_SIZE) {
+            fwrite(buffer, sizeof(unsigned char), BUFFER_SIZE, writingFile);
+            bytesInBuffer = 0;
+        }*/
+        byteWriting = byteWriting << (8 - (i % 8));
+        buffer[bytesInBuffer] = byteWriting;
+        bytesInBuffer++;
+        fwrite(buffer, sizeof(unsigned char), bytesInBuffer, writingFile);
     }
+
     fclose(readingFile);
 }
 
-void compressDirectory(char *directory, int matrix[256][256], long frequencies[256]) {
+void compressDirectory(char *directory, char matrix[256][256], long frequencies[256]) {
     char fullPath[600];
     FILE *writingFile;
     DIR *folder;
@@ -93,7 +111,6 @@ void compressDirectory(char *directory, int matrix[256][256], long frequencies[2
     fwrite(frequencies, sizeof(long), 256, writingFile); //Necessary to decompress
     
     while ((entry=readdir(folder))) {
-        printf("Compressing %s\n", entry->d_name);
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, entry->d_name);
         compressFile(fullPath, writingFile, matrix, entry->d_name);
     }

@@ -78,7 +78,7 @@ int createTree(Node *leafs) {
 }
 
 //Map (matrix) created to get the binary code of each byte
-void createMap(Node *root, int binNumber[], int index, int matrix[256][256]) {
+void createMap(Node *root, int binNumber[], int index, char matrix[256][256]) {
     //Base case: node does not have children (is a leaf)
     if (root->leftChild == NULL) {
         int symbol = root->key;
@@ -101,7 +101,6 @@ void createMap(Node *root, int binNumber[], int index, int matrix[256][256]) {
 
 //Initialize nodes
 void initializeNodes(Node* leafs, long frequencies[256]) {
-
     for (int i = 0; i < 512; i++) {
         leafs[i].leftChild = NULL;
         leafs[i].rightChild = NULL;
@@ -115,28 +114,4 @@ void initializeNodes(Node* leafs, long frequencies[256]) {
             leafs[i].value = -1;
         }
     }
-    
-    /*FILE *file = fopen(filename,"r");
-    long frequency;                               //Freq obtained by file
-    char text[100];                                 //Store the char
-    for (int i = 0; i < 512; i++) {
-        leafs[i].leftChild = NULL;
-        leafs[i].rightChild = NULL;
-        leafs[i].parent = NULL;
-        if (i<256 && !feof(file)) {
-            if (i == 32) { // ASCII del espacio
-                fscanf(file, " %ld", &frequency);
-                leafs[i].key = i;
-                leafs[i].value = frequency;
-            } else {
-                fscanf(file, "%s %ld", text, &frequency);
-                leafs[i].key = i;
-                leafs[i].value = frequency;
-            }
-        } else {
-            //These nodes will be the sum nodes to create the tree
-            leafs[i].key = NULL;
-            leafs[i].value = -1;
-        }
-	}*/
 }
