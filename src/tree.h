@@ -11,22 +11,29 @@ typedef struct Node {
     struct Node *parent;
 } Node;
 
-int minIndex(Node leafs[]) {
-    int minIndex = -1;
-    for (int i = 0; i<512; i++) {
-        if (leafs[i].value >= (long)0) {
-            if (minIndex == -1 || leafs[i].value <= leafs[minIndex].value) {
-                minIndex = i;
-            }
+Node leafs[512];
+
+void minIndex(Node *treeArg, int *min1, int *min2) {
+    Node *tree = treeArg ? treeArg : leafs;
+    *min1 = -1;
+    *min2 = -1;
+    for (int i = 0; i < 512; i++) {
+        if (tree[i].value < 0) continue; // nodo inactivo
+        
+        if (*min1 == -1 || tree[i].value < tree[*min1].value) {
+            *min2 = *min1; // el anterior min1 pasa a ser min2
+            *min1 = i;
+        } else if (*min2 == -1 || tree[i].value < tree[*min2].value) {
+            *min2 = i;
         }
     }
-    return minIndex;
 }
 
-int calcTreeSize(Node leafs[]) {
+int calcTreeSize(Node *treeArg) {
+    Node *tree = treeArg ? treeArg : leafs;
     int size = 0;
     for (int i = 0; i < 256; i++) {
-        if (leafs[i].value >= 0) {
+        if (tree[i].value >= 0) {
             size++;
         }
     }
@@ -34,45 +41,39 @@ int calcTreeSize(Node leafs[]) {
 }
 
 //Creating the tree
-int createTree(Node *leafs) {
+int createTree(Node *treeArg) {
+    Node *tree = treeArg ? treeArg : leafs;
     int minIndex1, minIndex2, treeSize, leafsIndex;
     long minFreq1, minFreq2;
-    treeSize = calcTreeSize(leafs);
+    treeSize = calcTreeSize(tree);
     leafsIndex = 255;
 
     //From 256 onwars the Nodes are the parents including the root
     for (int i = 0;i<256;i++) {
         //Obtain the index of the minimum value
-        minIndex1 = minIndex(leafs);
-        minFreq1 = leafs[minIndex1].value;
-
+        minIndex(tree, &minIndex1, &minIndex2);
         treeSize--;
         if (treeSize==0) {
             break;
         }
-        
-        //Freq is set to -1 to be ignored
-        leafs[minIndex1].value = -1;
 
-        //Obtain the index of the other minimum value
-        minIndex2 = minIndex(leafs);
-        minFreq2 = leafs[minIndex2].value;
-
-        //Freq is set to -1 to be ignored
-        leafs[minIndex2].value = -1; 
+        minFreq1 = tree[minIndex1].value;
+        tree[minIndex1].value = -1;
+        minFreq2 = tree[minIndex2].value;
+        tree[minIndex2].value = -1; 
 
         //Create a new node that will compete with others to search the min value
         leafsIndex++;
-        leafs[leafsIndex].key = -1;
-        leafs[leafsIndex].value = minFreq1 + minFreq2;
+        tree[leafsIndex].key = -1;
+        tree[leafsIndex].value = minFreq1 + minFreq2;
 
         //Assign children to the parent
-        leafs[leafsIndex].leftChild = &leafs[minIndex1];
-        leafs[leafsIndex].rightChild = &leafs[minIndex2];
+        tree[leafsIndex].leftChild = &tree[minIndex1];
+        tree[leafsIndex].rightChild = &tree[minIndex2];
 
         //Asign parent to the children
-        leafs[minIndex1].parent = &leafs[leafsIndex];
-        leafs[minIndex2].parent = &leafs[leafsIndex];
+        tree[minIndex1].parent = &tree[leafsIndex];
+        tree[minIndex2].parent = &tree[leafsIndex];
     }
     return leafsIndex;
 }
@@ -100,18 +101,19 @@ void createMap(Node *root, int binNumber[], int index, char matrix[256][256]) {
 }
 
 //Initialize nodes
-void initializeNodes(Node* leafs, long frequencies[256]) {
+void initializeNodes(long frequencies[256], Node *treeArg) {
+    Node *tree = treeArg ? treeArg : leafs;
     for (int i = 0; i < 512; i++) {
-        leafs[i].leftChild = NULL;
-        leafs[i].rightChild = NULL;
-        leafs[i].parent = NULL;
+        tree[i].leftChild = NULL;
+        tree[i].rightChild = NULL;
+        tree[i].parent = NULL;
         if (i<256) {
-            leafs[i].key = i;
-            leafs[i].value = frequencies[i];
+            tree[i].key = i;
+            tree[i].value = frequencies[i];
         }
         else {
-            leafs[i].key = -1;
-            leafs[i].value = -1;
+            tree[i].key = -1;
+            tree[i].value = -1;
         }
     }
 }

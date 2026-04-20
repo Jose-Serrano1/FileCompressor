@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <math.h>
+
 #include "tree.h"
 #include "compress.h"
 
@@ -50,9 +51,8 @@ int main(int argc, char *argv[]) {
     closedir(folder);
     
     /////TREE CREATION/////
-    Node leafs[512];
-    initializeNodes(leafs, frequencies);
-    int rootIndex = createTree(leafs); 
+    initializeNodes(frequencies, NULL);
+    int rootIndex = createTree(NULL); 
     
     /////MAP BYTES TO BINARY CODE/////
     int array[256];
@@ -84,9 +84,10 @@ void calculateFrequencies(char *filename, long frequencies[256]) {
         return;
     }
     
-    unsigned char byte;
-    while (fread(&byte, sizeof(unsigned char), 1, file) == 1) {
-        frequencies[byte]++;
+    unsigned char buf[65536];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), file)) > 0) {
+        for (size_t k = 0; k < n; k++) frequencies[buf[k]]++;
     }
 
     fclose(file);
