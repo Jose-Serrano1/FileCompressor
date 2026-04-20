@@ -1,4 +1,5 @@
 #include <sys/stat.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <locale.h>
@@ -9,8 +10,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "tree.h"
-#include "compress.h"
+#include "tree_threads.h"
+#include "compress_threads.h"
 
 
 void loadFrequenciesToMemory(char *filename, long frequencies[256]);
@@ -20,10 +21,10 @@ void initializeFrequencies(long frequencies[256]);
 void printFrequencyTable(long frequencies[256]);
 void printNumericArray(long *array, int size);
 bool validateFile(char *filename);
-
 int fileSize(char *filename);
 
 int main(int argc, char *argv[]) {
+    int filesCount = 0;
     char fullPath[600];
 
     if (argc < 2) {
@@ -45,6 +46,8 @@ int main(int argc, char *argv[]) {
 
     while ((entry=readdir(folder))) {
         if (!isTextFile(entry->d_name)) continue;
+
+        filesCount++;
         snprintf(fullPath, sizeof(fullPath), "%s/%s", argv[1], entry->d_name);
         calculateFrequencies(fullPath, frequencies);
     }
@@ -59,7 +62,7 @@ int main(int argc, char *argv[]) {
     char matrix[256][256]; //To read the compressed binary code for each byte
     createMap(&leafs[rootIndex], array, -1, matrix);
 
-    compressDirectory(argv[1], matrix, frequencies);
+    compressDirectory(argv[1], matrix, frequencies, filesCount);
     
     return 0;
 }
