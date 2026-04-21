@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <locale.h>
 #include <string.h>
 #include <dirent.h>

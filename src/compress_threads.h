@@ -121,6 +121,7 @@ void *compressFileThread(void *argsPointer) {
     fseek(temp, sizeof(unsigned long), SEEK_CUR);
 
     fwrite(filename, sizeof(char), strlen(filename) + 1, temp);
+    compressedSize += strlen(filename)+1;
 
     while (fread(&byteReading, sizeof(unsigned char), 1, readingFile) == 1) {
         //printf("chaa %02x\n",byteReading);
@@ -197,7 +198,6 @@ void compressDirectory(char *directory, char matrix[256][256], long frequencies[
     
     pthread_t threads[filesCount];
     struct CompressArgs args[filesCount];
-    FILE **files[filesCount];
     for (int i = 0; (entry=readdir(folder)); i++) {
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, entry->d_name);
         
@@ -205,7 +205,6 @@ void compressDirectory(char *directory, char matrix[256][256], long frequencies[
         
         //Serial
         //compressFile(fullPath, writingFile, matrix, entry->d_name);
-        
         args[i].fileName = strdup(entry->d_name);
         args[i].fullPath = strdup(fullPath);
         args[i].matrix = matrix;
@@ -217,6 +216,7 @@ void compressDirectory(char *directory, char matrix[256][256], long frequencies[
         printf("There was an error during compressiion\n"); return;
     }
     fwrite(frequencies, sizeof(long), 256, writingFile); //Necessary to decompress
+    fwrite(&filesCount, sizeof(int), 1, writingFile);
 
     void *filename;
     for (int i = 0; i < filesCount; i++) {
