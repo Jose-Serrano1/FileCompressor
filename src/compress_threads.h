@@ -202,6 +202,7 @@ void compressDirectory(char *directory, char matrix[256][256], long frequencies[
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, entry->d_name);
         
         if (!isTextFile(fullPath)) {i--; continue;}
+        printf("Compressing %s\n", fullPath);
         
         //Serial
         //compressFile(fullPath, writingFile, matrix, entry->d_name);
