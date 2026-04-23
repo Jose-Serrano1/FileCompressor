@@ -6,7 +6,7 @@
 #include <math.h>
 #include <libgen.h>
 
-#define BUFFER_SIZE 10000
+#define BUFFER_SIZE 100000
 
 bool isTextFile(char *filename) {
     int i;
