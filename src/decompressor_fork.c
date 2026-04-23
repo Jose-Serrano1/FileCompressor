@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
@@ -8,8 +10,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <dirent.h>
-#include <pthread.h>
-#include "tree_threads.h"
+#include <unistd.h>
+
+
+#include "tree.h"
+
 
 bool fileExists(char *filename);
 bool hasHuffExtension(char *filename, int size);
@@ -34,6 +39,8 @@ int rootIndex;
 
 int main(int argc, char *argv[]) {
     
+    struct timeval start, end;
+    
     // Validation of arguments number
     if (argc < 2) {
         printf("Usage: %s <file.huff>\n", argv[0]);
@@ -56,7 +63,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    gettimeofday(&start, NULL);
     decompress(argv[1], directoryName);
+    gettimeofday(&end, NULL);
+
+    double time = ((double)end.tv_sec - (double)start.tv_sec) * (double)1000 + ((double)end.tv_usec - (double)start.tv_usec) / (double)1000;
+    printf("%f ms\n", time);
+    return 0;
+    
+    
+    
     return 0;
 }
 
@@ -92,7 +108,7 @@ unsigned char findChar(FILE *file, Node *current, int *counter, unsigned char *b
     //Every 8 iterations a new byte is read
     while (current->key == -1) {
         if (*counter % 8 == 0) {
-            if (*bytesLeft == 0) return current->key;
+            //if (*bytesLeft == 0) return current->key;
             validate = fread(byte, sizeof(unsigned char), 1, file);
             (*bytesLeft) -= 1;
             if (!validate) {
@@ -117,14 +133,7 @@ unsigned char findChar(FILE *file, Node *current, int *counter, unsigned char *b
     printf("      |%-5li          | %-5i          |%-1f                   |\n",oldSize, newSize, 100-(float)newSize*100/oldSize);
 }*/
 
-void *decompressFile(void *argsPointer) {
-    DecompressArgs *arg = (DecompressArgs *)argsPointer;
-    long offset = arg->offset;
-    unsigned long bytesLeft = arg->bytesLeft;
-    char *compressedFile = arg->compressedFile;
-    char *directoryName = arg->directoryName;
-    Node *current = arg->current;
-
+void decompressFile(char *compressedFile, char directoryName[500], long offset, unsigned long bytesLeft, Node *root) {
     unsigned char byte, printingByte;
     char fileName[500];
     char fullPath[1000];
@@ -139,59 +148,58 @@ void *decompressFile(void *argsPointer) {
         if (byte == '\0') break;
     }
     snprintf(fullPath, sizeof(fullPath), "%s/%s", directoryName, fileName);
-    printf("Writing %s\n",fullPath);
+    //printf("Writing %s\n",fullPath);
     FILE *fileWriting = fopen(fullPath, "wb");
 
     while (bytesLeft > 0) {
         //Traverse the tree and returns char
-        printingByte = findChar(fileReading, current, &counter, &byte, &bytesLeft);
+        printingByte = findChar(fileReading, root, &counter, &byte, &bytesLeft);
         fwrite(&printingByte, sizeof(unsigned char), 1, fileWriting);
-        //current = root;
-        //bytesLeft--;
-    }
-    counter = 0;
-    byte = 0;
-    fclose(fileWriting);
 
-    return NULL;
+    }
+
+    fclose(fileWriting);
+    fclose(fileReading);
+
+    exit(0);
 }
 
 void decompress(char *compressedFile, char directoryName[500]) {
     unsigned long bytesLeft;
-    long frequencies[256];    
-    //char fileName[500];
-    //char fullPath[1000];
+    long frequencies[256];
     int filesCount;
-    
-    FILE *fileReading = fopen(compressedFile,"rb");
-    
-    //Load frequencies
+
+    FILE *fileReading = fopen(compressedFile, "rb");
     fread(frequencies, sizeof(long), 256, fileReading);
     fread(&filesCount, sizeof(int), 1, fileReading);
-    DecompressArgs args[filesCount];
-    pthread_t threads[filesCount];
-    
-    //Create tree
+
     initializeNodes(frequencies, huffmanTree);
     rootIndex = createTree(huffmanTree);
     Node *root = &huffmanTree[rootIndex];
-    //Node *current = &huffmanTree[rootIndex];
-    
-    //Write each file
-    for (int i = 0; fread(&bytesLeft, sizeof(unsigned long), 1, fileReading)==1; i++) {
-        args[i].offset = ftell(fileReading);
-        args[i].bytesLeft = bytesLeft;
-        args[i].compressedFile = compressedFile;
-        args[i].directoryName = directoryName;
-        args[i].current = root;
-        pthread_create(&threads[i], NULL, decompressFile, &args[i]);
+
+    pid_t pids[filesCount];
+    int count = 0;
+
+    for (int i = 0; fread(&bytesLeft, sizeof(unsigned long), 1, fileReading) == 1; i++) {
+        long offset = ftell(fileReading);
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            fclose(fileReading);
+            decompressFile(compressedFile, directoryName, offset, bytesLeft, root);
+        }
+        pids[count++] = pid;
         fseek(fileReading, bytesLeft, SEEK_CUR);
+
     }
-    for (int i = 0; i < filesCount; i++) {
-        pthread_join(threads[i], NULL);
-    }
+
     fclose(fileReading);
+    for (int i = 0; i < count; i++) {
+        waitpid(pids[i], NULL, 0);
+    }
+
 }
+
 
 void removeHuffExtension(char *original, char *copy, int size) {
     for (int i = 0; i < size; i++) {
