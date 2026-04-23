@@ -69,10 +69,7 @@ int main(int argc, char *argv[]) {
 
     double time = ((double)end.tv_sec - (double)start.tv_sec) * (double)1000 + ((double)end.tv_usec - (double)start.tv_usec) / (double)1000;
     printf("%f ms\n", time);
-    return 0;
-    
-    
-    
+
     return 0;
 }
 

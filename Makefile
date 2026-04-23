@@ -20,5 +20,8 @@ compressor decompressor: %: ./src/%.o
 compressor_threads decompressor_threads: %: ./src/%.o
 	$(CC) $< -o $@ -lm -pthread
 
+compressor_fork decompressor_fork: %: ./src/%.o
+	$(CC) $< -o $@ -lm
+
 clean:
 	rm -f $(OBJS) $(EXES)
