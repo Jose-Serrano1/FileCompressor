@@ -47,7 +47,7 @@ void compressFile(char fullPath[600], FILE *writingFile, char **matrix, char *fi
     struct stat st;
     long oldFileSize; //Size in bytes
 
-    printf("Compressing %s\n", filename);
+    //printf("Compressing %s\n", filename);
 
     stat(fullPath, &st);
     oldFileSize = st.st_size;
@@ -195,7 +195,7 @@ void compressDirectory(char *directory, char matrix[256][256], long frequencies[
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, entry->d_name);
         
         if (!isTextFile(fullPath)) continue;
-        printf("Compressing %s\n", fullPath);
+        //printf("Compressing %s\n", fullPath);
         
         tempFiles[count] = strdup(entry->d_name);
 
