@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
@@ -33,6 +34,7 @@ Node huffmanTree[512];
 int rootIndex;
 
 int main(int argc, char *argv[]) {
+    struct timeval start, end;
     
     // Validation of arguments number
     if (argc < 2) {
@@ -40,14 +42,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    /*long frequencies[256];
-    FILE *file = fopen(argv[1],"rb");
-    if (file == NULL) {
-        printf("There was an error reading: %s\n", argv[1]);
-        return;
-    }
-    fread(frequencies, sizeof(long), 256, file);*/
-
     char directoryName[500];
     removeHuffExtension(argv[1], directoryName, filenameSize(argv[1]));
     
@@ -56,7 +50,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    gettimeofday(&start, NULL);
     decompress(argv[1], directoryName);
+    gettimeofday(&end, NULL);
+
+    double time = ((double)end.tv_sec - (double)start.tv_sec) * (double)1000 + ((double)end.tv_usec - (double)start.tv_usec) / (double)1000;
+    printf("%f ms\n", time);
     return 0;
 }
 
@@ -92,7 +91,8 @@ unsigned char findChar(FILE *file, Node *current, int *counter, unsigned char *b
     //Every 8 iterations a new byte is read
     while (current->key == -1) {
         if (*counter % 8 == 0) {
-            if (*bytesLeft == 0) return current->key;
+            
+            //if (*bytesLeft == 0) return current->key;
             validate = fread(byte, sizeof(unsigned char), 1, file);
             (*bytesLeft) -= 1;
             if (!validate) {
@@ -139,14 +139,13 @@ void *decompressFile(void *argsPointer) {
         if (byte == '\0') break;
     }
     snprintf(fullPath, sizeof(fullPath), "%s/%s", directoryName, fileName);
-    printf("Writing %s\n",fullPath);
     FILE *fileWriting = fopen(fullPath, "wb");
 
     while (bytesLeft > 0) {
         //Traverse the tree and returns char
         printingByte = findChar(fileReading, current, &counter, &byte, &bytesLeft);
         fwrite(&printingByte, sizeof(unsigned char), 1, fileWriting);
-        //current = root;
+        current = arg->current;
         //bytesLeft--;
     }
     counter = 0;

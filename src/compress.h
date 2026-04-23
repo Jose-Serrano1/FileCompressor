@@ -51,6 +51,7 @@ void compressFile(char fullPath[600], FILE *writingFile, char matrix[256][256], 
     fseek(writingFile, sizeof(unsigned long), SEEK_CUR);
 
     fwrite(filename, sizeof(char), strlen(filename) + 1, writingFile);
+    compressedSize += strlen(filename) + 1;
 
     while (fread(&byteReading, sizeof(unsigned char), 1, readingFile) == 1) {
         //printf("chaa %02x\n",byteReading);
@@ -93,7 +94,7 @@ void compressFile(char fullPath[600], FILE *writingFile, char matrix[256][256], 
     fclose(readingFile);
 }
 
-void compressDirectory(char *directory, char matrix[256][256], long frequencies[256]) {
+void compressDirectory(char *directory, char matrix[256][256], long frequencies[256], int filesCount) {
     char fullPath[600];
     FILE *writingFile;
     DIR *folder;
@@ -114,6 +115,7 @@ void compressDirectory(char *directory, char matrix[256][256], long frequencies[
         printf("There was an error during compressiion\n"); return;
     }
     fwrite(frequencies, sizeof(long), 256, writingFile); //Necessary to decompress
+    fwrite(&filesCount, sizeof(int), 1, writingFile);
     
     while ((entry=readdir(folder))) {
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, entry->d_name);

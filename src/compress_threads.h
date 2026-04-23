@@ -45,7 +45,7 @@ void compressFile(char fullPath[600], FILE *writingFile, char **matrix, char *fi
     struct stat st;
     long oldFileSize; //Size in bytes
 
-    printf("Compressing %s\n", filename);
+    //printf("Compressing %s\n", filename);
 
     stat(fullPath, &st);
     oldFileSize = st.st_size;
@@ -117,14 +117,12 @@ void *compressFileThread(void *argsPointer) {
     }
 
     //Save position to write size in bytes later
-    unsigned long position = ftell(temp);
     fseek(temp, sizeof(unsigned long), SEEK_CUR);
 
     fwrite(filename, sizeof(char), strlen(filename) + 1, temp);
     compressedSize += strlen(filename)+1;
 
     while (fread(&byteReading, sizeof(unsigned char), 1, readingFile) == 1) {
-        //printf("chaa %02x\n",byteReading);
         for (int j = 0; matrix[byteReading][j] != 2; j++) {
             byteWriting = byteWriting << 1;
             i++;
@@ -140,12 +138,11 @@ void *compressFileThread(void *argsPointer) {
                 compressedSize += BUFFER_SIZE;
                 fwrite(buffer, sizeof(unsigned char), BUFFER_SIZE, temp);
             }
-            //fwrite(&byteWriting, sizeof(unsigned char), 1, writingFile);
         }
         byteReading = 0;
     }
 
-    int bytesInBuffer = (i / 8) % BUFFER_SIZE;
+    int bytesInBuffer = ((i / 8) % BUFFER_SIZE);
     if (i % 8 != 0) {
         byteWriting = byteWriting << (8 - (i % 8));
         buffer[bytesInBuffer] = byteWriting;
@@ -157,7 +154,7 @@ void *compressFileThread(void *argsPointer) {
     }
 
     //Writing size after calculating it
-    fseek(temp, position, SEEK_SET);
+    fseek(temp, 0, SEEK_SET);
     fwrite(&compressedSize, sizeof(unsigned long), 1, temp);
     fseek(temp, 0, SEEK_END);
 
@@ -169,10 +166,10 @@ void *compressFileThread(void *argsPointer) {
 
 
 void appendFile(char *filename, FILE *writing) {
-    
     FILE *reading = fopen(filename,"rb");
     unsigned char buffer[BUFFER_SIZE];
     size_t bytesRead;
+
     while ((bytesRead = fread(buffer, sizeof(unsigned char), BUFFER_SIZE, reading))) {
         fwrite(buffer, sizeof(unsigned char), bytesRead, writing);
     }
@@ -199,13 +196,10 @@ void compressDirectory(char *directory, char matrix[256][256], long frequencies[
     pthread_t threads[filesCount];
     struct CompressArgs args[filesCount];
     for (int i = 0; (entry=readdir(folder)); i++) {
+
+        if (!isTextFile(entry->d_name)) {i--; continue;}
         snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, entry->d_name);
-        
-        if (!isTextFile(fullPath)) {i--; continue;}
-        printf("Compressing %s\n", fullPath);
-        
-        //Serial
-        //compressFile(fullPath, writingFile, matrix, entry->d_name);
+
         args[i].fileName = strdup(entry->d_name);
         args[i].fullPath = strdup(fullPath);
         args[i].matrix = matrix;
