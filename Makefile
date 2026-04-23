@@ -1,23 +1,24 @@
 CC=gcc
-CFLAGS=-c -Wall
-SOURCE=./src/compressor.c
-SOURCE2=./src/decompresser.c
-OBJ=$(SOURCE:.c=.o)
-OBJ2=$(SOURCE2:.c=.o)
-EXE=compressor
-EXE2=decompressor
-HEADERS=./src/compress.h ./src/tree.h
+CFLAGS=-c -Wall -pthread
 
-all: $(EXE) $(EXE2)
+SOURCES=$(wildcard ./src/*.c)
+HEADERS=$(wildcard ./src/*.h)
 
-$(EXE): $(OBJ)
-	$(CC) $(OBJ) -o $@ -lm
+OBJS=$(SOURCES:.c=.o)
+EXES=$(basename $(notdir $(SOURCES)))
 
-$(EXE2): $(OBJ2)
-	$(CC) $(OBJ2) -o $@ -lm
+.PHONY: all clean
 
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) $< -o $@ -lm
+all: $(EXES)
+
+./src/%.o: ./src/%.c $(HEADERS)
+	$(CC) $(CFLAGS) $< -o $@
+
+compressor decompressor: %: ./src/%.o
+	$(CC) $< -o $@ -lm
+
+compressor_threads decompressor_threads: %: ./src/%.o
+	$(CC) $< -o $@ -lm -pthread
 
 clean:
-	rm -rf $(OBJ) $(OBJ2) $(EXE) $(EXE2)
+	rm -f $(OBJS) $(EXES)
